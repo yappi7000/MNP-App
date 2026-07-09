@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>回線管理</title>
+<style>
+  :root{
+    --bg:#0a0a0d;
+    --card:#17171c;
+    --card2:#1f1f26;
+    --border:#2a2a33;
+    --text:#f2f2f4;
+    --sub:#8b8b95;
+    --blue:#3b82f6;
+    --green:#22c55e;
+    --red:#ef4444;
+    --yellow:#eab308;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;
+    height:100%;}
+  #app{max-width:520px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;position:relative;}
+  .screen{flex:1;padding:20px 18px 100px;overflow-y:auto;}
+  .hidden{display:none !important;}
+
+  /* header */
+  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+  .topbar h1{font-size:26px;font-weight:800;margin:0;}
+  .iconbtn{width:40px;height:40px;border-radius:50%;background:var(--card2);
+    display:flex;align-items:center;justify-content:center;border:none;color:var(--text);
+    font-size:18px;cursor:pointer;}
+  .iconbtn:active{opacity:.6;}
+
+  /* search */
+  .searchbox{background:var(--card);border-radius:14px;padding:12px 16px;margin-bottom:12px;
+    display:flex;align-items:center;gap:8px;border:1px solid var(--border);}
+  .searchbox input{background:none;border:none;outline:none;color:var(--text);font-size:15px;width:100%;}
+  .searchbox input::placeholder{color:var(--sub);}
+
+  /* pill rows */
+  .pillrow{display:flex;gap:8px;overflow-x:auto;margin-bottom:10px;padding-bottom:2px;scrollbar-width:none;}
+  .pillrow::-webkit-scrollbar{display:none;}
+  .pill{flex:none;padding:9px 16px;border-radius:20px;background:var(--card2);border:1px solid var(--border);
+    color:var(--text);font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;}
+  .pill.active{background:var(--blue);border-color:var(--blue);}
+  .pill.outline{background:transparent;}
+
+  /* line card */
+  .linecard{background:var(--card);border-radius:16px;padding:16px;margin-bottom:12px;border:1px solid var(--border);cursor:pointer;}
+  .linecard:active{opacity:.85;}
+  .lc-top{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+  .tag{padding:4px 10px;border-radius:8px;font-size:12.5px;font-weight:700;color:#fff;}
+  .tag.outline{background:transparent;border:1.5px solid;color:var(--text);}
+  .tag.name{background:#2b3550;color:#a9c1ff;}
+  .tag.name2{background:#1f3a2a;color:#9be3ac;}
+  .spacer{flex:1;}
+  .daycount{color:var(--sub);font-size:13.5px;}
+  .lc-phone{font-size:22px;font-weight:800;letter-spacing:.5px;margin-bottom:6px;}
+  .lc-bottom{display:flex;align-items:center;justify-content:space-between;}
+  .cb-label{color:var(--green);font-weight:700;font-size:14.5px;}
+  .device-label{color:var(--sub);font-size:13.5px;}
+
+  /* fab */
+  .fab{position:fixed;left:50%;transform:translateX(calc(-1 * 260px + 460px));bottom:96px;
+    width:56px;height:56px;border-radius:50%;background:var(--blue);border:none;color:#fff;font-size:28px;
+    display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(59,130,246,.5);cursor:pointer;z-index:30;}
+  @media(max-width:520px){.fab{left:auto;right:24px;transform:none;}}
+
+  /* bottom nav */
+  .bottomnav{position:sticky;bottom:0;left:0;right:0;background:#101014;border-top:1px solid var(--border);
+    display:flex;justify-content:space-around;padding:10px 0 14px;z-index:20;}
+  .navitem{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--sub);
+    font-size:11px;background:none;border:none;cursor:pointer;flex:1;}
+  .navitem.active{color:var(--blue);}
+  .navitem svg{width:22px;height:22px;}
+
+  /* generic section */
+  h2.title{font-size:24px;font-weight:800;margin:0 0 16px;}
+  .bigcard{background:var(--card);border-radius:16px;padding:22px;text-align:center;margin-bottom:20px;border:1px solid var(--border);}
+  .bigcard .lbl{color:var(--sub);font-size:14px;margin-bottom:6px;}
+  .bigcard .val{font-size:34px;font-weight:800;}
+  .stat3{display:flex;background:var(--blue);border-radius:16px;padding:20px 8px;margin-bottom:18px;}
+  .stat3 > div{flex:1;text-align:center;}
+  .stat3 .n{font-size:22px;font-weight:800;}
+  .stat3 .l{font-size:12px;opacity:.9;margin-top:4px;}
+
+  .rowcard{background:var(--card);border-radius:14px;padding:16px;margin-bottom:10px;border:1px solid var(--border);
+    display:flex;justify-content:space-between;align-items:center;cursor:pointer;}
+  .rowcard .l1{font-weight:700;font-size:16px;}
+  .rowcard .l2{color:var(--sub);font-size:12.5px;margin-top:3px;}
+  .rowcard .amt{font-weight:800;font-size:18px;}
+  .amt.pos{color:var(--green);} .amt.neg{color:var(--red);}
+
+  .sectionlabel{font-size:16px;font-weight:800;margin:22px 0 10px;display:flex;justify-content:space-between;}
+
+  .emptystate{text-align:center;color:var(--sub);padding:60px 20px;font-size:14.5px;}
+  .emptystate .ico{font-size:44px;margin-bottom:14px;opacity:.5;}
+
+  /* bars for stats */
+  .barwrap{margin-bottom:16px;}
+  .barhead{display:flex;justify-content:space-between;font-size:14.5px;margin-bottom:6px;}
+  .barhead b{font-weight:700;}
+  .bartrack{height:8px;border-radius:6px;background:#26262e;overflow:hidden;}
+  .barfill{height:100%;border-radius:6px;}
+
+  .monthbars{display:flex;gap:8px;align-items:flex-end;height:150px;margin-top:10px;}
+  .mbcol{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;}
+  .mbnum{font-size:12px;color:var(--sub);margin-bottom:6px;}
+  .mbbar{width:60%;background:#2c2c36;border-radius:5px 5px 0 0;min-height:4px;}
+  .mblabel{font-size:11px;color:var(--sub);margin-top:6px;}
+
+  /* modal */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;display:flex;align-items:flex-end;}
+  .modal{background:#141418;width:100%;max-height:88vh;overflow-y:auto;border-radius:20px 20px 0 0;padding:20px 18px 30px;
+    animation:slideup .18s ease-out;}
+  @keyframes slideup{from{transform:translateY(24px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+  .modal h3{margin:0 0 18px;font-size:19px;font-weight:800;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:13px;color:var(--sub);margin-bottom:6px;}
+  .field input, .field select, .field textarea{width:100%;background:var(--card2);border:1px solid var(--border);
+    border-radius:10px;padding:11px 12px;color:var(--text);font-size:15px;outline:none;}
+  .field textarea{resize:vertical;min-height:60px;font-family:inherit;}
+  .chipselect{display:flex;flex-wrap:wrap;gap:8px;}
+  .chipselect .chip{padding:8px 14px;border-radius:18px;background:var(--card2);border:1px solid var(--border);
+    font-size:13.5px;cursor:pointer;}
+  .chipselect .chip.sel{background:var(--blue);border-color:var(--blue);}
+  .modalbtns{display:flex;gap:10px;margin-top:20px;}
+  .btn{flex:1;padding:13px;border-radius:12px;border:none;font-weight:700;font-size:15px;cursor:pointer;}
+  .btn.primary{background:var(--blue);color:#fff;}
+  .btn.ghost{background:var(--card2);color:var(--text);}
+  .btn.danger{background:#3a1a1a;color:var(--red);}
+  .closebar{width:36px;height:4px;background:#333;border-radius:3px;margin:0 auto 16px;}
+
+  .settingsrow{background:var(--card);border-radius:14px;padding:16px;margin-bottom:12px;display:flex;
+    align-items:center;gap:14px;cursor:pointer;border:1px solid var(--border);}
+  .settingsrow .si{font-size:22px;}
+  .settingsrow .st{font-weight:700;font-size:15.5px;}
+  .settingsrow .sd{color:var(--sub);font-size:12.5px;margin-top:2px;}
+  .settingsrow .chev{margin-left:auto;color:var(--sub);}
+
+  .managerow{background:var(--card2);border-radius:12px;padding:13px 14px;margin-bottom:8px;
+    display:flex;align-items:center;gap:12px;}
+  .managerow .dot{width:14px;height:14px;border-radius:50%;flex:none;}
+  .managerow .nm{flex:1;font-size:15px;}
+  .managerow button{background:none;border:none;color:var(--sub);font-size:16px;cursor:pointer;}
+
+  .txrow{display:flex;justify-content:space-between;align-items:center;background:var(--card2);border-radius:10px;
+    padding:10px 12px;margin-bottom:8px;font-size:14px;}
+  .txrow .txl{color:var(--sub);}
+  .toggle{position:relative;width:44px;height:26px;border-radius:14px;background:#333;cursor:pointer;flex:none;}
+  .toggle.on{background:var(--blue);}
+  .toggle .knob{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.15s;}
+  .toggle.on .knob{left:21px;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- 回線一覧 -->
+  <div class="screen" id="screen-lines">
+    <div class="topbar">
+      <h1>回線一覧</h1>
+      <div style="display:flex;gap:8px;">
+        <button class="iconbtn" onclick="openSettings()">⚙️</button>
+      </div>
+    </div>
+    <div style="text-align:center;color:var(--sub);font-size:11.5px;margin:-8px 0 4px;">
+      <b style="color:var(--text);">やっぴ〜Presents</b>　X（@8p_thankyou）　LINE公式（https://lin.ee/AsTWK4D）
+    </div>
+    <div style="text-align:center;color:#555;font-size:10px;margin-bottom:14px;">build 2026-07-10-v7（この番号が古い場合はブラウザの再読み込み/キャッシュ削除を試してください）</div>
+    <div class="searchbox">
+      <span>🔍</span>
+      <input id="searchInput" placeholder="キャリア、電話番号、端末名で検索..." oninput="renderLines()">
+    </div>
+    <div class="pillrow" id="sortRow"></div>
+    <div class="pillrow" id="carrierFilterRow"></div>
+    <div id="linesList"></div>
+  </div>
+
+  <!-- 予約番号 -->
+  <div class="screen hidden" id="screen-reserve">
+    <h2 class="title">MNP予約番号</h2>
+    <div class="rowcard" style="cursor:default;">
+      <div class="l1">期限切れを表示</div>
+      <div class="toggle on" id="expiredToggle" onclick="toggleExpired()"><div class="knob"></div></div>
+    </div>
+    <div id="reserveList" style="margin-top:14px;"></div>
+  </div>
+
+  <!-- CB -->
+  <div class="screen hidden" id="screen-cb">
+    <h2 class="title">キャッシュバック</h2>
+    <div class="bigcard">
+      <div class="lbl">累計キャッシュバック</div>
+      <div class="val" style="color:var(--blue)" id="cbTotal">¥0</div>
+    </div>
+    <div id="cbMonthList"></div>
+  </div>
+
+  <!-- 利益計算 -->
+  <div class="screen hidden" id="screen-profit">
+    <h2 class="title">利益計算</h2>
+    <div class="bigcard">
+      <div class="lbl">合計利益</div>
+      <div class="val" id="profitTotal" style="color:var(--green)">¥0</div>
+    </div>
+    <div class="sectionlabel">月別利益（タップでジャンプ）</div>
+    <div id="profitMonthList"></div>
+    <div id="profitDetail"></div>
+  </div>
+
+  <!-- 統計 -->
+  <div class="screen hidden" id="screen-stats">
+    <h2 class="title">統計</h2>
+    <div class="stat3">
+      <div><div class="n" id="statCount">0</div><div class="l">総回線数</div></div>
+      <div><div class="n" id="statProfit">¥0</div><div class="l">総利益</div></div>
+      <div><div class="n" id="statAvg">¥0</div><div class="l">平均利益</div></div>
+    </div>
+    <div class="bigcard" style="text-align:left;padding:18px;">
+      <div style="font-weight:800;font-size:16px;margin-bottom:14px;">📶 キャリア別回線数</div>
+      <div id="carrierStatsList"></div>
+    </div>
+    <div class="bigcard" style="text-align:left;padding:18px;">
+      <div style="font-weight:800;font-size:16px;margin-bottom:6px;">📅 月別契約数（過去6ヶ月）</div>
+      <div class="monthbars" id="monthBars"></div>
+    </div>
+  </div>
+
+  <!-- Settings -->
+  <div class="screen hidden" id="screen-settings">
+    <div class="topbar">
+      <button class="iconbtn" onclick="closeSettings()">←</button>
+      <h1 style="font-size:19px;">設定</h1>
+      <div style="width:40px;"></div>
+    </div>
+    <div class="settingsrow" onclick="openManager('carrier')">
+      <div class="si">📡</div>
+      <div><div class="st">キャリア管理</div><div class="sd">キャリアの追加・編集・並び替え</div></div>
+      <div class="chev">›</div>
+    </div>
+    <div class="settingsrow" onclick="openManager('contractor')">
+      <div class="si">👥</div>
+      <div><div class="st">契約者名義管理</div><div class="sd">契約者名義の追加・編集・並び替え</div></div>
+      <div class="chev">›</div>
+    </div>
+    <div class="settingsrow" onclick="openManager('user')">
+      <div class="si">👤</div>
+      <div><div class="st">使用者管理</div><div class="sd">使用者の追加・編集・並び替え</div></div>
+      <div class="chev">›</div>
+    </div>
+    <div class="settingsrow" onclick="exportData()">
+      <div class="si">⬆️</div>
+      <div><div class="st">データエクスポート</div><div class="sd">データをJSONでバックアップ</div></div>
+      <div class="chev">›</div>
+    </div>
+    <div class="settingsrow" onclick="exportICS()">
+      <div class="si">📅</div>
+      <div><div class="st">重要日程をカレンダーにインポート</div><div class="sd">全回線の181日・211日をicsで一括出力</div></div>
+      <div class="chev">›</div>
+    </div>
+    <div style="text-align:center;color:var(--sub);font-size:12px;margin-top:30px;padding-top:20px;border-top:1px solid var(--border);">
+      <b style="color:var(--text);">やっぴ〜Presents</b><br>
+      X（@8p_thankyou）　LINE公式（https://lin.ee/AsTWK4D）
+    </div>
+  </div>
+
+  <!-- Manager (carrier/contractor/user) -->
+  <div class="screen hidden" id="screen-manager">
+    <div class="topbar">
+      <button class="iconbtn" onclick="closeManager()">←</button>
+      <h1 style="font-size:19px;" id="managerTitle">管理</h1>
+      <button class="iconbtn" onclick="addManagerItem()">＋</button>
+    </div>
+    <div style="color:var(--sub);font-size:12.5px;margin-bottom:12px;">タップして編集・削除</div>
+    <div id="managerList"></div>
+  </div>
+
+  <div class="bottomnav">
+    <button class="navitem active" data-tab="lines" onclick="switchTab('lines')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.68 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.32 1.85.55 2.81.68A2 2 0 0 1 22 16.92z"/></svg>
+      回線一覧
+    </button>
+    <button class="navitem" data-tab="reserve" onclick="switchTab('reserve')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"/></svg>
+      予約番号
+    </button>
+    <button class="navitem" data-tab="cb" onclick="switchTab('cb')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></svg>
+      CB
+    </button>
+    <button class="navitem" data-tab="profit" onclick="switchTab('profit')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.1-2.8-2.8L7 14"/></svg>
+      利益計算
+    </button>
+    <button class="navitem" data-tab="stats" onclick="switchTab('stats')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2v10l7 5"/></svg>
+      統計
+    </button>
+  </div>
+
+  <button class="fab" id="fabBtn" onclick="openLineModal()">＋</button>
+</div>
+
+<div id="modalRoot"></div>
+
+<script>
+/* ---------------- storage helpers ---------------- */
+/* window.storageが使える環境ではそれを使い、存在しない/エラーになる場合は
+   ブラウザ標準のlocalStorageに自動フォールバックする */
+const STORAGE_PREFIX = 'mnpapp:';
+
+async function sGet(key, fallback){
+  if(typeof window !== 'undefined' && window.storage && typeof window.storage.get === 'function'){
+    try{
+      const r = await window.storage.get(key, false);
+      return r ? JSON.parse(r.value) : fallback;
+    }catch(e){
+      console.warn('window.storage.get failed, falling back to localStorage:', e && e.message);
+    }
+  }
+  try{
+    const raw = localStorage.getItem(STORAGE_PREFIX + key);
+    return raw !== null ? JSON.parse(raw) : fallback;
+  }catch(e){
+    console.error('localStorage get also failed:', e);
+    return fallback;
+  }
+}
+
+async function sSet(key, val){
+  if(typeof window !== 'undefined' && window.storage && typeof window.storage.set === 'function'){
+    try{
+      await window.storage.set(key, JSON.stringify(val), false);
+      return true;
+    }catch(e){
+      console.warn('window.storage.set failed, falling back to localStorage:', e && e.message);
+    }
+  }
+  try{
+    localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(val));
+    return true;
+  }catch(e){
+    console.error('localStorage set also failed:', e);
+    alert('保存に失敗しました。ブラウザのプライベートモードだと保存できない場合があります。');
+    return false;
+  }
+}
+
+/* ---------------- state ---------------- */
+let lines = [];
+let carriers = [];
+let contractors = [];
+let users = [];
+let reservations = [];
+let sortMode = 'date_desc'; // date_desc, profit_desc, carrier_asc, contractor_asc, user_asc
+let carrierFilter = 'すべて';
+let showExpired = true;
+let managerType = null;
+let editingLineId = null;
+
+const defaultCarriers = [
+  {id:'uq',name:'UQ',color:'#e6197a'},
+  {id:'docomo',name:'docomo',color:'#e0312e'},
+  {id:'softbank',name:'Softbank',color:'#8a8a8f'},
+  {id:'ymobile',name:'Y!mobile',color:'#e0312e'},
+  {id:'rakuten',name:'楽天',color:'#c8281f'},
+  {id:'mineo',name:'mineo',color:'#2fa85a'},
+  {id:'povo',name:'povo2.0',color:'#eab308'},
+  {id:'nihontsushin',name:'日本通信',color:'#2453c9'},
+];
+
+async function loadAll(){
+  lines = await sGet('lines', []);
+  carriers = await sGet('carriers', defaultCarriers);
+  contractors = await sGet('contractors', []);
+  users = await sGet('users', []);
+  reservations = await sGet('reservations', []);
+}
+
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+
+/* ---------------- milestone date helpers ---------------- */
+function addDays(dateStr, n){
+  const d = new Date(dateStr+'T00:00:00');
+  d.setDate(d.getDate()+n);
+  return d.toISOString().slice(0,10);
+}
+function toCalDate(dateStr){ return dateStr.replace(/-/g,''); }
+function gcalUrl(title, dateStr, details){
+  const start = toCalDate(dateStr);
+  const end = toCalDate(addDays(dateStr,1));
+  const q = new URLSearchParams({action:'TEMPLATE', text:title, dates:start+'/'+end});
+  if(details) q.set('details', details);
+  return 'https://calendar.google.com/calendar/render?'+q.toString();
+}
+function milestoneStatus(dateStr){
+  const diff = Math.floor((new Date(dateStr) - new Date(new Date().toISOString().slice(0,10))) / 86400000);
+  if(diff < 0) return 'passed';
+  if(diff <= 7) return 'soon';
+  return 'normal';
+}
+
+/* ---------------- utils ---------------- */
+function yen(n){ return '¥' + Math.round(n).toLocaleString('ja-JP'); }
+function daysSince(dateStr){
+  const d = new Date(dateStr); const now = new Date();
+  return Math.floor((now - d) / 86400000);
+}
+function monthKey(dateStr){ return dateStr ? dateStr.slice(0,7) : ''; }
+function carrierColor(name){
+  const c = carriers.find(c=>c.name===name);
+  return c ? c.color : '#666';
+}
+function lineIncome(line){ return (line.transactions||[]).filter(t=>t.type==='income').reduce((a,b)=>a+Number(b.amount),0); }
+function lineExpense(line){ return (line.transactions||[]).filter(t=>t.type==='expense').reduce((a,b)=>a+Number(b.amount),0); }
+function lineProfit(line){ return lineIncome(line) - lineExpense(line); }
+/* このアプリでは「収入」＝実質すべてキャッシュバック(CB)として扱う（元アプリの仕様に合わせて簡素化） */
+function isCBTx(t){ return t.type==='income'; }
+function lineCB(line){ return lineIncome(line); }
+function primaryCBAmount(line){ return (line.transactions||[]).filter(t=>t.primaryCB).reduce((a,b)=>a+Number(b.amount),0); }
+
+/* ---------------- tabs ---------------- */
+function switchTab(tab){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));
+  document.getElementById('screen-'+tab).classList.remove('hidden');
+  document.querySelectorAll('.navitem').forEach(n=>n.classList.remove('active'));
+  const item = document.querySelector('.navitem[data-tab="'+tab+'"]');
+  if(item) item.classList.add('active');
+  document.getElementById('fabBtn').style.display = (tab==='lines') ? 'flex' : 'none';
+  if(tab==='lines') renderLines();
+  if(tab==='reserve') renderReserve();
+  if(tab==='cb') renderCB();
+  if(tab==='profit') renderProfit();
+  if(tab==='stats') renderStats();
+}
+
+function openSettings(){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));
+  document.getElementById('screen-settings').classList.remove('hidden');
+  document.getElementById('fabBtn').style.display='none';
+}
+function closeSettings(){ switchTab('lines'); }
+
+/* ---------------- render: 回線一覧 ---------------- */
+function renderSortRow(){
+  const opts = [
+    ['date_desc','契約日'],['profit_desc','利益'],['carrier_asc','キャリア'],
+    ['contractor_asc','契約者'],['user_asc','使用者']
+  ];
+  const row = document.getElementById('sortRow');
+  row.innerHTML = opts.map(([key,label])=>{
+    const active = sortMode.startsWith(key.split('_')[0]);
+    const arrow = active ? (sortMode.endsWith('desc') ? ' ↓' : ' ↑') : '';
+    return `<div class="pill ${active?'active':''}" onclick="setSortMode('${key.split('_')[0]}')">${label}${arrow}</div>`;
+  }).join('');
+}
+function setSortMode(base){
+  if(sortMode.startsWith(base)){
+    sortMode = sortMode.endsWith('desc') ? base+'_asc' : base+'_desc';
+  } else {
+    sortMode = base+'_desc';
+  }
+  renderSortRow(); renderLines();
+}
+function renderCarrierFilterRow(){
+  const row = document.getElementById('carrierFilterRow');
+  let html = `<div class="pill ${carrierFilter==='すべて'?'active':''}" onclick="setCarrierFilter('すべて')">すべて</div>`;
+  html += carriers.map(c=>{
+    const active = carrierFilter===c.name;
+    return `<div class="pill outline" style="border-color:${c.color};${active?('background:'+c.color+';border-color:'+c.color+';'):''}" onclick="setCarrierFilter('${c.name.replace(/'/g,"\\'")}')">${c.name}</div>`;
+  }).join('');
+  row.innerHTML = html;
+}
+function setCarrierFilter(name){ carrierFilter = name; renderCarrierFilterRow(); renderLines(); }
+
+function renderLines(){
+  renderSortRow(); renderCarrierFilterRow();
+  const q = (document.getElementById('searchInput').value||'').toLowerCase();
+  let list = lines.filter(l=>{
+    if(carrierFilter!=='すべて' && l.carrier!==carrierFilter) return false;
+    if(q){
+      const hay = (l.carrier+l.phone+(l.device||'')).toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  list.sort((a,b)=>{
+    if(sortMode.startsWith('date')){
+      const d = new Date(a.contractDate) - new Date(b.contractDate);
+      return sortMode.endsWith('desc') ? -d : d;
+    }
+    if(sortMode.startsWith('profit')){
+      const d = lineProfit(a) - lineProfit(b);
+      return sortMode.endsWith('desc') ? -d : d;
+    }
+    if(sortMode.startsWith('carrier')){
+      const d = (a.carrier||'').localeCompare(b.carrier||'');
+      return sortMode.endsWith('desc') ? -d : d;
+    }
+    if(sortMode.startsWith('contractor')){
+      const d = (a.contractor||'').localeCompare(b.contractor||'');
+      return sortMode.endsWith('desc') ? -d : d;
+    }
+    if(sortMode.startsWith('user')){
+      const d = (a.user||'').localeCompare(b.user||'');
+      return sortMode.endsWith('desc') ? -d : d;
+    }
+    return 0;
+  });
+
+  const el = document.getElementById('linesList');
+  if(list.length===0){
+    el.innerHTML = `<div class="emptystate"><div class="ico">📱</div>回線がありません<br>右下の＋から追加してください</div>`;
+    return;
+  }
+  el.innerHTML = list.map(l=>{
+    const color = carrierColor(l.carrier);
+    const cb = lineCB(l);
+    const d181 = addDays(l.contractDate, 181);
+    const d211 = addDays(l.contractDate, 211);
+    const s181 = milestoneStatus(d181), s211 = milestoneStatus(d211);
+    const mcolor = s => s==='soon' ? 'var(--yellow)' : (s==='passed' ? 'var(--sub)' : 'var(--text)');
+    return `
+    <div class="linecard" onclick="openLineModal('${l.id}')">
+      <div class="lc-top">
+        <span class="tag" style="background:${color}">${escapeHtml(l.carrier)}</span>
+        <span class="tag name">${escapeHtml(l.contractor||'-')}</span>
+        <span class="tag name2">${escapeHtml(l.user||'-')}</span>
+        <span class="spacer"></span>
+        <span class="daycount">${daysSince(l.contractDate)}日</span>
+      </div>
+      <div class="lc-phone">${escapeHtml(l.phone||'(番号未設定)')}</div>
+      <div style="display:flex;gap:14px;font-size:12.5px;color:var(--sub);margin-bottom:8px;">
+        <span style="color:${mcolor(s181)}">181日: ${d181}</span>
+        <span style="color:${mcolor(s211)}">211日: ${d211}</span>
+      </div>
+      <div class="lc-bottom">
+        ${cb>0 ? `<span class="cb-label">CB: ${yen(cb)}</span>` : '<span></span>'}
+        ${l.device ? `<span class="device-label">${escapeHtml(l.device)}</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+function escapeHtml(s){ return (s||'').toString().replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+/* ---------------- generic modals (prompt/confirm alternatives) ---------------- */
+let __modalCallback = null;
+function openTextModal(title, fields, onConfirm){
+  // fields: array of {id, label, value, placeholder}
+  __modalCallback = onConfirm;
+  const fieldsHtml = fields.map(f=>`
+    <div class="field"><label>${escapeHtml(f.label)}</label>
+      <input id="${f.id}" value="${escapeHtml(f.value||'')}" placeholder="${escapeHtml(f.placeholder||'')}">
+    </div>`).join('');
+  const html = `
+  <div class="modal-overlay" id="genericTextOverlay" onclick="if(event.target===this) closeTextModal()">
+    <div class="modal">
+      <div class="closebar"></div>
+      <h3>${escapeHtml(title)}</h3>
+      ${fieldsHtml}
+      <div class="modalbtns">
+        <button class="btn ghost" onclick="closeTextModal()">キャンセル</button>
+        <button class="btn primary" onclick="submitTextModal()">OK</button>
+      </div>
+    </div>
+  </div>`;
+  document.getElementById('modalRoot').insertAdjacentHTML('beforeend', html);
+  const firstInput = fields[0] && document.getElementById(fields[0].id);
+  if(firstInput) setTimeout(()=>firstInput.focus(), 50);
+}
+function closeTextModal(){
+  const ov = document.getElementById('genericTextOverlay'); if(ov) ov.remove();
+  __modalCallback = null;
+}
+function submitTextModal(){
+  const cb = __modalCallback;
+  const ov = document.getElementById('genericTextOverlay');
+  const inputs = ov ? ov.querySelectorAll('input') : [];
+  const values = Array.from(inputs).map(i=>i.value.trim());
+  if(ov) ov.remove();
+  __modalCallback = null;
+  if(cb) cb(values);
+}
+function openConfirmModal(message, onConfirm){
+  __modalCallback = onConfirm;
+  const html = `
+  <div class="modal-overlay" id="genericConfirmOverlay" onclick="if(event.target===this) closeConfirmModal()">
+    <div class="modal">
+      <div class="closebar"></div>
+      <h3>確認</h3>
+      <p style="color:#dcdce0;font-size:14.5px;margin:0 0 6px;">${escapeHtml(message)}</p>
+      <div class="modalbtns">
+        <button class="btn ghost" onclick="closeConfirmModal()">キャンセル</button>
+        <button class="btn danger" onclick="submitConfirmModal()">削除する</button>
+      </div>
+    </div>
+  </div>`;
+  document.getElementById('modalRoot').insertAdjacentHTML('beforeend', html);
+}
+function closeConfirmModal(){
+  const ov = document.getElementById('genericConfirmOverlay'); if(ov) ov.remove();
+  __modalCallback = null;
+}
+function submitConfirmModal(){
+  const cb = __modalCallback;
+  const ov = document.getElementById('genericConfirmOverlay'); if(ov) ov.remove();
+  __modalCallback = null;
+  if(cb) cb();
+}
+
+/* ---------------- render: 予約番号 ---------------- */
+function toggleExpired(){
+  showExpired = !showExpired;
+  document.getElementById('expiredToggle').classList.toggle('on', showExpired);
+  renderReserve();
+}
+function renderReserve(){
+  let list = reservations.slice();
+  if(!showExpired){
+    list = list.filter(r=> new Date(r.expireDate) >= new Date());
+  }
+  list.sort((a,b)=> new Date(b.issueDate) - new Date(a.issueDate));
+  const el = document.getElementById('reserveList');
+  if(list.length===0){
+    el.innerHTML = `<div class="emptystate"><div class="ico">🎫</div>MNP予約番号がありません</div>`;
+    return;
+  }
+  el.innerHTML = list.map(r=>{
+    const expired = new Date(r.expireDate) < new Date();
+    const line = lines.find(l=>l.id===r.lineId);
+    return `<div class="rowcard" onclick="openReserveModal('${r.id}')">
+      <div>
+        <div class="l1">${escapeHtml(r.number)}</div>
+        <div class="l2">${line ? escapeHtml(line.phone) : ''} ・ 発行:${r.issueDate} ・ 期限:${r.expireDate}</div>
+      </div>
+      <div class="amt ${expired?'neg':'pos'}">${expired?'期限切れ':'有効'}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ---------------- render: CB ---------------- */
+function renderCB(){
+  const monthly = {};
+  lines.forEach(l=>{
+    (l.transactions||[]).forEach(t=>{
+      if(t.type==='income' && isCBTx(t)){
+        const mk = monthKey(t.date);
+        monthly[mk] = (monthly[mk]||0) + Number(t.amount);
+      }
+    });
+  });
+  const total = Object.values(monthly).reduce((a,b)=>a+b,0);
+  document.getElementById('cbTotal').textContent = yen(total);
+  const months = Object.keys(monthly).sort().reverse();
+  const el = document.getElementById('cbMonthList');
+  if(months.length===0){
+    el.innerHTML = `<div class="emptystate"><div class="ico">💴</div>キャッシュバックの記録がありません</div>`;
+    return;
+  }
+  el.innerHTML = months.map(m=>`
+    <div class="rowcard" style="cursor:default;">
+      <div class="l1">${m}</div>
+      <div class="amt pos">${yen(monthly[m])}</div>
+    </div>`).join('');
+}
+
+/* ---------------- render: 利益計算 ---------------- */
+function renderProfit(){
+  let totalIncome=0, totalExpense=0;
+  const monthly = {}; // mk -> {income, expense, lines: [{line, income, expense}]}
+  lines.forEach(l=>{
+    (l.transactions||[]).forEach(t=>{
+      const mk = monthKey(t.date);
+      if(!monthly[mk]) monthly[mk] = {income:0, expense:0, byLine:{}};
+      if(!monthly[mk].byLine[l.id]) monthly[mk].byLine[l.id] = {income:0, expense:0};
+      const amt = Number(t.amount);
+      if(t.type==='income'){ monthly[mk].income+=amt; monthly[mk].byLine[l.id].income+=amt; totalIncome+=amt; }
+      else { monthly[mk].expense+=amt; monthly[mk].byLine[l.id].expense+=amt; totalExpense+=amt; }
+    });
+  });
+  const total = totalIncome - totalExpense;
+  document.getElementById('profitTotal').textContent = yen(total);
+  document.getElementById('profitTotal').style.color = total>=0 ? 'var(--green)' : 'var(--red)';
+
+  const months = Object.keys(monthly).sort().reverse();
+  const mEl = document.getElementById('profitMonthList');
+  if(months.length===0){
+    mEl.innerHTML = `<div class="emptystate"><div class="ico">📊</div>取引の記録がありません</div>`;
+    document.getElementById('profitDetail').innerHTML='';
+    return;
+  }
+  mEl.innerHTML = months.map(m=>{
+    const p = monthly[m].income - monthly[m].expense;
+    return `<div class="rowcard" onclick="scrollToMonth('${m}')">
+      <div>
+        <div class="l1">${m}</div>
+        <div class="l2">収入: ${yen(monthly[m].income)}　支出: ${yen(monthly[m].expense)}</div>
+      </div>
+      <div class="amt ${p>=0?'pos':'neg'}">${yen(p)}</div>
+    </div>`;
+  }).join('');
+
+  let detailHtml = `<div class="sectionlabel">回線別詳細</div>`;
+  months.forEach(m=>{
+    const p = monthly[m].income - monthly[m].expense;
+    detailHtml += `<div id="pmonth-${m}" style="display:flex;justify-content:space-between;align-items:center;margin:18px 0 8px;">
+      <div style="font-weight:800;font-size:16px;">${m}</div>
+      <div style="font-weight:800;color:${p>=0?'var(--green)':'var(--red)'}">${yen(p)}</div>
+    </div>`;
+    Object.entries(monthly[m].byLine).forEach(([lineId, v])=>{
+      const line = lines.find(l=>l.id===lineId);
+      if(!line) return;
+      const lp = v.income - v.expense;
+      detailHtml += `<div class="linecard" style="cursor:default;">
+        <div class="lc-top">
+          <span class="tag" style="background:${carrierColor(line.carrier)}">${escapeHtml(line.carrier)}</span>
+          <span class="spacer"></span>
+          <span class="amt ${lp>=0?'pos':'neg'}" style="font-size:17px;">${yen(lp)}</span>
+        </div>
+        <div class="lc-phone" style="font-size:17px;">${escapeHtml(line.phone)}</div>
+        <div style="display:flex;justify-content:space-between;color:var(--sub);font-size:13.5px;margin-top:4px;">
+          <span>収入</span><span style="color:var(--text)">${yen(v.income)}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;color:var(--sub);font-size:13.5px;">
+          <span>支出</span><span style="color:var(--text)">${yen(v.expense)}</span>
+        </div>
+      </div>`;
+    });
+  });
+  document.getElementById('profitDetail').innerHTML = detailHtml;
+}
+function scrollToMonth(m){
+  const el = document.getElementById('pmonth-'+m);
+  if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+/* ---------------- render: 統計 ---------------- */
+function renderStats(){
+  const count = lines.length;
+  let totalProfit = 0;
+  lines.forEach(l=> totalProfit += lineProfit(l));
+  const avg = count ? totalProfit/count : 0;
+  document.getElementById('statCount').textContent = count;
+  document.getElementById('statProfit').textContent = yen(totalProfit);
+  document.getElementById('statAvg').textContent = yen(avg);
+
+  const byCarrier = {};
+  lines.forEach(l=>{
+    if(!byCarrier[l.carrier]) byCarrier[l.carrier] = {count:0, profit:0};
+    byCarrier[l.carrier].count++;
+    byCarrier[l.carrier].profit += lineProfit(l);
+  });
+  const entries = Object.entries(byCarrier).sort((a,b)=>b[1].count-a[1].count);
+  const maxCount = Math.max(1, ...entries.map(e=>e[1].count));
+  document.getElementById('carrierStatsList').innerHTML = entries.map(([name,v])=>{
+    const color = carrierColor(name);
+    const pct = (v.count/maxCount*100).toFixed(0);
+    return `<div class="barwrap">
+      <div class="barhead">
+        <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${color};margin-right:6px;"></span>${escapeHtml(name)}</span>
+        <span>${v.count}回線 / ${yen(v.profit)}</span>
+      </div>
+      <div class="bartrack"><div class="barfill" style="width:${pct}%;background:${color}"></div></div>
+    </div>`;
+  }).join('') || `<div style="color:var(--sub);font-size:14px;">データがありません</div>`;
+
+  // 月別契約数 過去6ヶ月
+  const now = new Date();
+  const monthsArr = [];
+  for(let i=5;i>=0;i--){
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    monthsArr.push({key: d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'), label:(d.getMonth()+1)+'月'});
+  }
+  const counts = monthsArr.map(m => lines.filter(l=>monthKey(l.contractDate)===m.key).length);
+  const maxC = Math.max(1, ...counts);
+  document.getElementById('monthBars').innerHTML = monthsArr.map((m,i)=>{
+    const h = Math.max(4, counts[i]/maxC*120);
+    return `<div class="mbcol">
+      <div class="mbnum">${counts[i]}</div>
+      <div class="mbbar" style="height:${h}px;background:${counts[i]>0?'var(--blue)':'#2c2c36'}"></div>
+      <div class="mblabel">${m.label}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ---------------- Line modal (add/edit) ---------------- */
+function openLineModal(id){
+  editingLineId = id || null;
+  const line = id ? lines.find(l=>l.id===id) : null;
+  const today = new Date().toISOString().slice(0,10);
+
+  const defaultCarrierForNew = (carrierFilter && carrierFilter !== 'すべて') ? carrierFilter : '';
+  const carrierOpts = carriers.map(c=>{
+    const isSel = line ? (line.carrier===c.name) : (defaultCarrierForNew===c.name);
+    return `<option value="${escapeHtml(c.name)}" ${isSel?'selected':''}>${escapeHtml(c.name)}</option>`;
+  }).join('');
+  const contractorOpts = contractors.map(c=>`<option value="${escapeHtml(c)}" ${line&&(line.contractor||'').trim()===c.trim()?'selected':''}>${escapeHtml(c)}</option>`).join('');
+  const userOpts = users.map(c=>`<option value="${escapeHtml(c)}" ${line&&(line.user||'').trim()===c.trim()?'selected':''}>${escapeHtml(c)}</option>`).join('');
+
+  const txHtml = line ? (line.transactions||[]).map(t=>`
+    <div class="txrow">
+      <span>${t.date} ・ <span class="txl">${t.type==='income'?'収入':'支出'}${t.tag?'('+t.tag+')':''}</span></span>
+      <span style="display:flex;align-items:center;gap:8px;">
+        <b style="color:${t.type==='income'?'var(--green)':'var(--red)'}">${yen(t.amount)}</b>
+        <button onclick="deleteTx('${t.id}')" style="background:none;border:none;color:var(--sub);cursor:pointer;">✕</button>
+      </span>
+    </div>`).join('') : '';
+
+  const html = `
+  <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
+    <div class="modal">
+      <div class="closebar"></div>
+      <h3>${line ? '回線を編集' : '回線を追加'}</h3>
+      <div class="field"><label>キャリア</label>
+        <select id="f-carrier">${carrierOpts || '<option>キャリアを設定で追加してください</option>'}</select>
+      </div>
+      <div class="field"><label>電話番号</label>
+        <input id="f-phone" placeholder="090-0000-0000" value="${line?escapeHtml(line.phone):''}">
+      </div>
+      <div class="field">
+        <label style="color:var(--green);font-weight:700;">💴 CB金額（キャッシュバック・任意）</label>
+        <input id="f-cb" type="number" placeholder="例: 52000" value="${line?(primaryCBAmount(line)||''):''}">
+      </div>
+      <div class="field"><label>契約日</label>
+        <input id="f-date" type="date" value="${line?line.contractDate:today}" oninput="renderMilestones()">
+      </div>
+      <div class="field"><label>重要日程（自動計算・タップでGoogleカレンダーに追加）</label>
+        <div id="milestoneDates" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+      </div>
+      <div class="field"><label>契約者</label>
+        <select id="f-contractor" onchange="handleInlineAdd('contractor', this)"><option value="">-</option>${contractorOpts}<option value="__new__">＋ 新規追加</option></select>
+      </div>
+      <div class="field"><label>使用者</label>
+        <select id="f-user" onchange="handleInlineAdd('user', this)"><option value="">-</option>${userOpts}<option value="__new__">＋ 新規追加</option></select>
+      </div>
+      <div class="field"><label>端末名（任意）</label>
+        <input id="f-device" placeholder="例: iPhone 15" value="${line?escapeHtml(line.device||''):''}">
+      </div>
+      <div class="field"><label>メモ（任意）</label>
+        <textarea id="f-memo">${line?escapeHtml(line.memo||''):''}</textarea>
+      </div>
+      ${line ? `
+      <div class="sectionlabel" style="margin-top:6px;">取引履歴<span style="font-weight:400;font-size:13px;color:var(--sub)">CB・維持費など</span></div>
+      <div id="txList">${txHtml || '<div style="color:var(--sub);font-size:13.5px;">まだ取引がありません</div>'}</div>
+      <button class="btn ghost" style="margin-top:10px;width:100%;" onclick="openTxModal('${line.id}')">＋ 取引を追加</button>
+      ` : `<div style="color:var(--sub);font-size:12.5px;margin-top:-6px;">※CBや費用は回線を作成後に追加できます</div>`}
+      <div class="modalbtns">
+        ${line ? `<button class="btn danger" onclick="deleteLine('${line.id}')">削除</button>` : ''}
+        <button class="btn ghost" onclick="closeModal()">キャンセル</button>
+        <button class="btn primary" onclick="saveLine()">保存</button>
+      </div>
+    </div>
+  </div>`;
+  document.getElementById('modalRoot').innerHTML = html;
+  renderMilestones();
+}
+function closeModal(){ document.getElementById('modalRoot').innerHTML=''; }
+function handleInlineAdd(kind, selectEl){
+  if(selectEl.value !== '__new__') return;
+  const label = kind==='contractor' ? '契約者名義' : '使用者名';
+  const html = `
+  <div class="modal-overlay" id="inlineNameOverlay" onclick="if(event.target===this) cancelInlineName('${kind}')">
+    <div class="modal">
+      <div class="closebar"></div>
+      <h3>${label}を追加</h3>
+      <div class="field">
+        <label>${label}</label>
+        <input id="inlineNameInput" placeholder="例: 山田" autofocus>
+      </div>
+      <div class="modalbtns">
+        <button class="btn ghost" onclick="cancelInlineName('${kind}')">キャンセル</button>
+        <button class="btn primary" onclick="confirmInlineName('${kind}')">追加</button>
+      </div>
+    </div>
+  </div>`;
+  document.getElementById('modalRoot').insertAdjacentHTML('beforeend', html);
+  setTimeout(()=>{ const el=document.getElementById('inlineNameInput'); if(el) el.focus(); }, 50);
+}
+function cancelInlineName(kind){
+  const sel = document.getElementById(kind==='contractor'?'f-contractor':'f-user');
+  if(sel) sel.value = '';
+  const ov = document.getElementById('inlineNameOverlay');
+  if(ov) ov.remove();
+}
+async function confirmInlineName(kind){
+  const input = document.getElementById('inlineNameInput');
+  const name = (input.value||'').trim();
+  const selectEl = document.getElementById(kind==='contractor'?'f-contractor':'f-user');
+  if(!name){ cancelInlineName(kind); return; }
+  if(kind==='contractor'){
+    if(!contractors.includes(name)) contractors.push(name);
+    await sSet('contractors', contractors);
+  } else {
+    if(!users.includes(name)) users.push(name);
+    await sSet('users', users);
+  }
+  const opts = (kind==='contractor'?contractors:users).map(c=>
+    `<option value="${escapeHtml(c)}" ${c===name?'selected':''}>${escapeHtml(c)}</option>`
+  ).join('');
+  selectEl.innerHTML = `<option value="">-</option>${opts}<option value="__new__">＋ 新規追加</option>`;
+  selectEl.value = name;
+  const ov = document.getElementById('inlineNameOverlay');
+  if(ov) ov.remove();
+}
+
+function renderMilestones(){
+  const dateEl = document.getElementById('f-date');
+  const wrap = document.getElementById('milestoneDates');
+  if(!dateEl || !wrap) return;
+  const dateVal = dateEl.value;
+  if(!dateVal){ wrap.innerHTML=''; return; }
+  const phone = (document.getElementById('f-phone')||{}).value || '';
+  const carrierSel = document.getElementById('f-carrier');
+  const carrier = carrierSel ? carrierSel.value : '';
+  wrap.innerHTML = [181,211].map(n=>{
+    const d = addDays(dateVal, n);
+    const title = `${carrier} ${phone} ${n}日目`.trim();
+    const url = gcalUrl(title, d, 'MNP回線管理アプリより自動作成');
+    return `<a href="${url}" target="_blank" rel="noopener" class="pill outline" style="text-decoration:none;color:var(--text);border-color:var(--blue);">${n}日: ${d} 📅</a>`;
+  }).join('');
+}
+
+async function saveLine(){
+  const carrier = document.getElementById('f-carrier').value;
+  const phone = document.getElementById('f-phone').value.trim();
+  const contractDate = document.getElementById('f-date').value;
+  const contractor = document.getElementById('f-contractor').value;
+  const user = document.getElementById('f-user').value;
+  const device = document.getElementById('f-device').value.trim();
+  const memo = document.getElementById('f-memo').value.trim();
+  const cbInput = document.getElementById('f-cb');
+  const cbAmount = cbInput ? Number(cbInput.value) || 0 : 0;
+  if(!carrier){ alert('キャリアを選択してください'); return; }
+  if(!contractDate){ alert('契約日を入力してください'); return; }
+
+  let line;
+  if(editingLineId){
+    line = lines.find(l=>l.id===editingLineId);
+    Object.assign(line, {carrier, phone, contractDate, contractor, user, device, memo});
+  } else {
+    line = {id:uid(), carrier, phone, contractDate, contractor, user, device, memo, transactions:[]};
+    lines.push(line);
+  }
+  if(!line.transactions) line.transactions = [];
+  // CB金額フィールド専用の取引のみ入れ替え（手動で「取引を追加」したCBはここでは触らない）
+  line.transactions = line.transactions.filter(t=>!t.primaryCB);
+  if(cbAmount > 0){
+    line.transactions.push({id:uid(), type:'income', amount:cbAmount, date:contractDate, tag:'CB', isCB:true, primaryCB:true});
+  }
+  await sSet('lines', lines);
+  closeModal();
+  renderLines();
+}
+function deleteLine(id){
+  openConfirmModal('この回線を削除しますか？', async ()=>{
+    lines = lines.filter(l=>l.id!==id);
+    reservations = reservations.filter(r=>r.lineId!==id);
+    await sSet('lines', lines);
+    await sSet('reservations', reservations);
+    closeModal();
+    renderLines();
+  });
+}
+
+/* transaction modal */
+function openTxModal(lineId){
+  const today = new Date().toISOString().slice(0,10);
+  const html = `
+  <div class="modal-overlay" onclick="if(event.target===this) closeTxModal()">
+    <div class="modal">
+      <div class="closebar"></div>
+      <h3>取引を追加</h3>
+      <div class="field"><label>種別</label>
+        <div class="chipselect" id="tx-type">
+          <div class="chip sel" data-v="income" onclick="selectChip(this)">収入</div>
+          <div class="chip" data-v="expense" onclick="selectChip(this)">支出</div>
+        </div>
+      </div>
+      <div class="field"><label>金額</label>
+        <input id="tx-amount" type="number" placeholder="0">
+      </div>
+      <div class="field"><label>日付</label>
+        <input id="tx-date" type="date" value="${today}">
+      </div>
+      <div class="field"><label>タグ（任意・分類用のメモです）</label>
+        <input id="tx-tag" placeholder="例: 月額維持費, 端末代">
+      </div>
+      <div class="modalbtns">
+        <button class="btn ghost" onclick="closeTxModal()">キャンセル</button>
+        <button class="btn primary" onclick="saveTx('${lineId}')">追加</button>
+      </div>
+    </div>
+  </div>`;
+  document.getElementById('modalRoot').insertAdjacentHTML('beforeend', html);
+}
+function selectChip(el){
+  el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('sel'));
+  el.classList.add('sel');
+}
+function closeTxModal(){
+  const overlays = document.querySelectorAll('#modalRoot .modal-overlay');
+  if(overlays.length>1) overlays[overlays.length-1].remove();
+}
+async function saveTx(lineId){
+  const typeChip = document.querySelector('#tx-type .chip.sel');
+  const type = typeChip ? typeChip.dataset.v : 'income';
+  const amount = Number(document.getElementById('tx-amount').value);
+  const date = document.getElementById('tx-date').value;
+  const tag = document.getElementById('tx-tag').value.trim();
+  if(!amount || !date){ alert('金額と日付を入力してください'); return; }
+  const line = lines.find(l=>l.id===lineId);
+  if(!line.transactions) line.transactions=[];
+  line.transactions.push({id:uid(), type, amount, date, tag});
+  await sSet('lines', lines);
+  closeTxModal();
+  openLineModal(lineId);
+}
+async function deleteTx(txId){
+  lines.forEach(l=>{ l.transactions = (l.transactions||[]).filter(t=>t.id!==txId); });
+  await sSet('lines', lines);
+  openLineModal(editingLineId);
+}
+
+/* ---------------- Reservation modal ---------------- */
+function openReserveModal(id){
+  const r = id ? reservations.find(x=>x.id===id) : null;
+  const today = new Date().toISOString().slice(0,10);
+  const defExpire = new Date(Date.now()+15*86400000).toISOString().slice(0,10);
+  const lineOpts = lines.map(l=>`<option value="${l.id}" ${r&&r.lineId===l.id?'selected':''}>${escapeHtml(l.carrier)} / ${escapeHtml(l.phone)}</option>`).join('');
+  const html = `
+  <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
+    <div class="modal">
+      <div class="closebar"></div>
+      <h3>${r?'予約番号を編集':'予約番号を追加'}</h3>
+      <div class="field"><label>対象回線</label>
+        <select id="r-line"><option value="">-</option>${lineOpts}</select>
+      </div>
+      <div class="field"><label>予約番号</label>
+        <input id="r-number" value="${r?escapeHtml(r.number):''}" placeholder="半角数字">
+      </div>
+      <div class="field"><label>発行日</label>
+        <input id="r-issue" type="date" value="${r?r.issueDate:today}">
+      </div>
+      <div class="field"><label>有効期限</label>
+        <input id="r-expire" type="date" value="${r?r.expireDate:defExpire}">
+      </div>
+      <div class="modalbtns">
+        ${r?`<button class="btn danger" onclick="deleteReserve('${r.id}')">削除</button>`:''}
+        <button class="btn ghost" onclick="closeModal()">キャンセル</button>
+        <button class="btn primary" onclick="saveReserve(${r?`'${r.id}'`:'null'})">保存</button>
+      </div>
+    </div>
+  </div>`;
+  document.getElementById('modalRoot').innerHTML = html;
+}
+async function saveReserve(id){
+  const lineId = document.getElementById('r-line').value;
+  const number = document.getElementById('r-number').value.trim();
+  const issueDate = document.getElementById('r-issue').value;
+  const expireDate = document.getElementById('r-expire').value;
+  if(!number || !issueDate || !expireDate){ alert('必須項目を入力してください'); return; }
+  if(id){
+    const r = reservations.find(x=>x.id===id);
+    Object.assign(r, {lineId, number, issueDate, expireDate});
+  } else {
+    reservations.push({id:uid(), lineId, number, issueDate, expireDate});
+  }
+  await sSet('reservations', reservations);
+  closeModal();
+  renderReserve();
+}
+async function deleteReserve(id){
+  reservations = reservations.filter(r=>r.id!==id);
+  await sSet('reservations', reservations);
+  closeModal();
+  renderReserve();
+}
+
+/* override fab for reserve tab */
+const origSwitchTab = switchTab;
+switchTab = function(tab){
+  origSwitchTab(tab);
+  const fab = document.getElementById('fabBtn');
+  if(tab==='reserve'){ fab.style.display='flex'; fab.onclick=()=>openReserveModal(); }
+  else if(tab==='lines'){ fab.style.display='flex'; fab.onclick=()=>openLineModal(); }
+  else { fab.style.display='none'; }
+};
+
+/* ---------------- Manager (carrier/contractor/user) ---------------- */
+function openManager(type){
+  managerType = type;
+  document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));
+  document.getElementById('screen-manager').classList.remove('hidden');
+  const titles = {carrier:'キャリア管理', contractor:'契約者名義管理', user:'使用者管理'};
+  document.getElementById('managerTitle').textContent = titles[type];
+  renderManagerList();
+}
+function closeManager(){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));
+  document.getElementById('screen-settings').classList.remove('hidden');
+}
+function renderManagerList(){
+  const el = document.getElementById('managerList');
+  if(managerType==='carrier'){
+    el.innerHTML = carriers.map((c,i)=>`
+      <div class="managerow">
+        <div class="dot" style="background:${c.color}"></div>
+        <div class="nm">${escapeHtml(c.name)}</div>
+        <button onclick="editCarrier(${i})">✎</button>
+        <button onclick="removeCarrier(${i})">🗑</button>
+      </div>`).join('');
+  } else {
+    const arr = managerType==='contractor' ? contractors : users;
+    const fn = managerType==='contractor' ? 'Contractor' : 'User';
+    el.innerHTML = arr.map((name,i)=>`
+      <div class="managerow">
+        <div class="dot" style="background:var(--blue)"></div>
+        <div class="nm">${escapeHtml(name)}</div>
+        <button onclick="edit${fn}(${i})">✎</button>
+        <button onclick="remove${fn}(${i})">🗑</button>
+      </div>`).join('');
+  }
+  if((managerType==='carrier'?carriers:managerType==='contractor'?contractors:users).length===0){
+    el.innerHTML = `<div class="emptystate">まだ登録されていません<br>右上の＋から追加してください</div>`;
+  }
+}
+function addManagerItem(){
+  if(managerType==='carrier') return addCarrier();
+  if(managerType==='contractor') return addContractor();
+  if(managerType==='user') return addUser();
+}
+function addCarrier(){
+  openTextModal('キャリアを追加', [
+    {id:'m-name', label:'キャリア名', placeholder:'例: UQ'},
+    {id:'m-color', label:'カラーコード', value:'#3b82f6', placeholder:'#3b82f6'}
+  ], async (vals)=>{
+    const [name, color] = vals;
+    if(!name) return;
+    carriers.push({id:uid(), name, color: color||'#3b82f6'});
+    await sSet('carriers', carriers);
+    renderManagerList();
+  });
+}
+function editCarrier(i){
+  const c = carriers[i];
+  openTextModal('キャリアを編集', [
+    {id:'m-name', label:'キャリア名', value:c.name},
+    {id:'m-color', label:'カラーコード', value:c.color}
+  ], async (vals)=>{
+    const [name, color] = vals;
+    if(!name) return;
+    c.name = name; c.color = color||c.color;
+    await sSet('carriers', carriers);
+    renderManagerList();
+  });
+}
+function removeCarrier(i){
+  openConfirmModal('削除しますか？', async ()=>{
+    carriers.splice(i,1);
+    await sSet('carriers', carriers);
+    renderManagerList();
+  });
+}
+function addContractor(){
+  openTextModal('契約者名義を追加', [{id:'m-name', label:'契約者名義', placeholder:'例: 山田'}], async (vals)=>{
+    const [name] = vals;
+    if(!name) return;
+    contractors.push(name);
+    await sSet('contractors', contractors);
+    renderManagerList();
+  });
+}
+function editContractor(i){
+  openTextModal('契約者名義を編集', [{id:'m-name', label:'契約者名義', value:contractors[i]}], async (vals)=>{
+    const [name] = vals;
+    if(!name) return;
+    contractors[i] = name;
+    await sSet('contractors', contractors);
+    renderManagerList();
+  });
+}
+function removeContractor(i){
+  openConfirmModal('削除しますか？', async ()=>{
+    contractors.splice(i,1);
+    await sSet('contractors', contractors);
+    renderManagerList();
+  });
+}
+function addUser(){
+  openTextModal('使用者を追加', [{id:'m-name', label:'使用者名', placeholder:'例: 花子'}], async (vals)=>{
+    const [name] = vals;
+    if(!name) return;
+    users.push(name);
+    await sSet('users', users);
+    renderManagerList();
+  });
+}
+function editUser(i){
+  openTextModal('使用者を編集', [{id:'m-name', label:'使用者名', value:users[i]}], async (vals)=>{
+    const [name] = vals;
+    if(!name) return;
+    users[i] = name;
+    await sSet('users', users);
+    renderManagerList();
+  });
+}
+function removeUser(i){
+  openConfirmModal('削除しますか？', async ()=>{
+    users.splice(i,1);
+    await sSet('users', users);
+    renderManagerList();
+  });
+}
+
+/* ---------------- export ---------------- */
+function exportData(){
+  const data = {lines, carriers, contractors, users, reservations, exportedAt:new Date().toISOString()};
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'mnp-data-'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function icsEscape(s){ return (s||'').replace(/[\\,;]/g,m=>'\\'+m).replace(/\n/g,'\\n'); }
+function icsDate(dateStr){ return dateStr.replace(/-/g,''); }
+function exportICS(){
+  if(lines.length===0){ alert('回線がありません'); return; }
+  const now = new Date();
+  const stamp = now.toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';
+  let body = 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//MNP管理//JA\r\nCALSCALE:GREGORIAN\r\n';
+  lines.forEach(l=>{
+    [181,211].forEach(n=>{
+      const d = addDays(l.contractDate, n);
+      const nextD = addDays(d,1);
+      const title = icsEscape(`${l.carrier} ${l.phone} ${n}日目`);
+      body += 'BEGIN:VEVENT\r\n';
+      body += 'UID:'+uid()+'@mnp-app\r\n';
+      body += 'DTSTAMP:'+stamp+'\r\n';
+      body += 'DTSTART;VALUE=DATE:'+icsDate(d)+'\r\n';
+      body += 'DTEND;VALUE=DATE:'+icsDate(nextD)+'\r\n';
+      body += 'SUMMARY:'+title+'\r\n';
+      body += 'DESCRIPTION:'+icsEscape('契約日:'+l.contractDate+' / 契約者:'+(l.contractor||'-')+' / 使用者:'+(l.user||'-'))+'\r\n';
+      body += 'END:VEVENT\r\n';
+    });
+  });
+  body += 'END:VCALENDAR\r\n';
+  const blob = new Blob([body], {type:'text/calendar'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'mnp-schedule.ics';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  alert('icsファイルをダウンロードしました。Googleカレンダー(PC版)の「設定 > インポート/エクスポート」からこのファイルを取り込むと、全回線の181日・211日が一括登録されます。');
+}
+
+/* ---------------- init ---------------- */
+(async function init(){
+  await loadAll();
+  switchTab('lines');
+})();
+</script>
+</body>
+</html>
